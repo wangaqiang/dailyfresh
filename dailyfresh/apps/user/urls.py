@@ -1,3 +1,4 @@
+# coding: utf-8
 from django.conf.urls import url
 from user import views
 from user.views import RegisterView, ActiveView,LoginView

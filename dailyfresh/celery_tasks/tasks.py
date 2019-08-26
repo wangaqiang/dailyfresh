@@ -23,7 +23,6 @@ def send_register_active_email(to_email, username, token):
     message = ''
     sender = settings.EMAIL_FROM
     reciver = [to_email]
-    # html_message = '<a href="http://127.0.0.1:8000/user/active/%s">http://127.0.0.1:8000/user/active/%s</a>'%(token, token)
     html_message = '<h1>%s,欢迎您成为天天生鲜注册会员</h1>请点击下面链接激活您的用户<br/><a href="http://127.0.0.1:8000/user/active/%s">http://127.0.0.1:8000/user/active/%s</a>'%(username, token, token)
     html_message = html_message.encode('utf-8').decode()
     send_mail(subject, message, sender, reciver, html_message=html_message)
