@@ -1,7 +1,9 @@
 # coding: utf-8
+import redis
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
 from django.core.mail import send_mail
+from django.contrib.auth import authenticate, login
 from django.views.generic import View
 from django.http import HttpResponse
 from django.conf import settings
@@ -11,6 +13,7 @@ from celery_tasks.tasks import send_register_active_email
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer # 需要先装这个包
 from itsdangerous import SignatureExpired
 import re
+
 
 # Create your views here.
 def register(request):
@@ -204,8 +207,83 @@ class ActiveView(View):
             return HttpResponse('激活链接已过期')
 
 #user/login
-class LoginView(View):
+class LoginView(View): 
     '''登录'''
     def get(self, request):
         '''显示登录页面'''
-        return render(request, 'login.html')
+        # 判断是否记住了用户名
+        if 'username' in request.COOKIES:
+            username = request.COOKIES.get('username')
+            checked = 'checked'
+        else:
+            username = ''
+            checked = ''
+        # 使用模板
+        return render(request, 'login.html', {'username':username, 'checked':checked})
+
+    def post(self, request):
+        '''登录校验'''
+        # 接受数据
+        username = request.POST.get('username')
+        password = request.POST.get('pwd')
+
+        # 校验数据
+        if not all([username, password]):
+            return render(request, 'login.html', { 'errmsg': '数据不完整' })
+
+        # 业务处理：登录校验
+        user = authenticate(username=username, password=password) # django 自动调用对传入的password进行加密对比，只返回结果
+        if user is not None:
+            # 用户名密码正确
+            if user.is_active==1:
+                # 代表用户已激活
+                # 记录用户登录的状态
+                login(request, user)
+
+                # 跳转到首页
+                response = redirect(reverse('goods:index')) # HttpResponseRedirect
+
+                #判断是否需要记住用户名
+                remember = request.POST.get('remember')
+                if remember == 'on':
+                    # 记住用户名
+                    response.set_cookie('username', username, max_age=7*24*3600)
+                else:
+                    response.delete_cookie('username')
+
+                # 返回response
+                return response
+
+
+            else:
+                # 代表用户没激活
+                return render(request, 'login.html', {'errmsg':'账户未激活'})
+        else:
+            # 用户名或者密码错误
+            return render(request, 'login.html', {'errmsg':'用户名或者密码错误'})
+
+# /user
+class UserInfoView(View):
+    '''用户中心-信息页'''
+    def get(self, request):
+        '''显示'''
+        # page = 'user'
+        return render(request, 'user_center_info.html', {'page':'user'})
+
+
+# /user/order
+class UserOrderView(View):
+    '''用户中心-订单页'''
+    def get(self, request):
+        '''显示'''
+        # page = 'order'
+        return render(request, 'user_center_order.html', {'page': 'order'})
+
+
+# /user/address
+class AddressView(View):
+    '''用户中心-地址页'''
+    # page = 'address'
+    def get(self, request):
+        '''显示'''
+        return render(request, 'user_center_site.html', {'page': 'address'})
