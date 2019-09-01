@@ -8,10 +8,12 @@ from django.views.generic import View
 from django.http import HttpResponse
 from django.conf import settings
 from user.models import User
+
 # from . import models
 from celery_tasks.tasks import send_register_active_email
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer # 需要先装这个包
 from itsdangerous import SignatureExpired
+from utils.mixin import LoginRequiredMixin
 import re
 
 
@@ -240,8 +242,12 @@ class LoginView(View):
                 # 记录用户登录的状态
                 login(request, user)
 
-                # 跳转到首页
-                response = redirect(reverse('goods:index')) # HttpResponseRedirect
+                # 获取登录后所要跳转到的地址，默认跳转到首页
+                next_url = request.GET.get('next', reverse('goods:index'))
+
+                # 跳转到next_url
+                response = redirect(next_url) # HttpResponseRedirect
+
 
                 #判断是否需要记住用户名
                 remember = request.POST.get('remember')
@@ -263,7 +269,7 @@ class LoginView(View):
             return render(request, 'login.html', {'errmsg':'用户名或者密码错误'})
 
 # /user
-class UserInfoView(View):
+class UserInfoView(LoginRequiredMixin, View):
     '''用户中心-信息页'''
     def get(self, request):
         '''显示'''
@@ -272,7 +278,7 @@ class UserInfoView(View):
 
 
 # /user/order
-class UserOrderView(View):
+class UserOrderView(LoginRequiredMixin, View):
     '''用户中心-订单页'''
     def get(self, request):
         '''显示'''
@@ -281,7 +287,7 @@ class UserOrderView(View):
 
 
 # /user/address
-class AddressView(View):
+class AddressView(LoginRequiredMixin, View):
     '''用户中心-地址页'''
     # page = 'address'
     def get(self, request):

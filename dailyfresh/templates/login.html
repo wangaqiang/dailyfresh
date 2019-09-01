@@ -19,6 +19,7 @@
 					<a href="register">立即注册</a>
 				</div>
 				<div class="form_input">
+					{# 不设置action时，提交表单时，会向浏览器地址栏中的地址提交数据 #}
 					<form method="POST" >
 						<!-- 为了在用户提交表单时防止跨站攻击所做的保护 -->
 						{% csrf_token %}
