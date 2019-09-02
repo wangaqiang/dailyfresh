@@ -3,7 +3,7 @@ import redis
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
 from django.core.mail import send_mail
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.views.generic import View
 from django.http import HttpResponse
 from django.conf import settings
@@ -208,7 +208,7 @@ class ActiveView(View):
             # 激活链接已经过期
             return HttpResponse('激活链接已过期')
 
-#user/login
+# user/login
 class LoginView(View): 
     '''登录'''
     def get(self, request):
@@ -268,12 +268,30 @@ class LoginView(View):
             # 用户名或者密码错误
             return render(request, 'login.html', {'errmsg':'用户名或者密码错误'})
 
+
+# user/logout
+class LogoutView(View):
+    '''退出登录'''
+    def get(self, request):
+        '''退出登录'''
+        # 清除用户的session信息
+        logout(request)
+
+        # 跳转到首页
+        return redirect(reverse('goods:index'))
+
+
 # /user
 class UserInfoView(LoginRequiredMixin, View):
     '''用户中心-信息页'''
     def get(self, request):
         '''显示'''
         # page = 'user'
+        # request.user
+        # 如果用户未登录 AnonymousUser的一个实例，返回False
+        # 如果用户登录，则是User的实例 返会True
+        # request.user.is_authenticated()
+        # 除了你给模板文件传递的模板变量之外，django框架会把request.user也传给模板文件
         return render(request, 'user_center_info.html', {'page':'user'})
 
 
