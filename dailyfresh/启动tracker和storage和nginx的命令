@@ -1,0 +1,8 @@
+sudo service fdfs_trackerd start
+sudo service fdfs_storaged start
+sudo /usr/local/nginx/sbin/nginx
+
+重启
+
+sudo service fdfs_trackerd restart
+sudo service fdfs_storaged restart
