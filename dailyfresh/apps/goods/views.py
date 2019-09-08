@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
 from django.views.generic import View
+from django.core.cache import cache
 from goods.models import GoodsType, IndexGoodsBanner, GoodsSKU, IndexPromotionBanner, IndexTypeGoodsBanner
 from order.models import OrderGoods
 from django_redis import get_redis_connection
@@ -9,29 +10,38 @@ from django_redis import get_redis_connection
 class IndexView(View):
     '''首页'''
     def get(self, request):
-
         '''显示首页'''
-        # 获取商品的种类信息
-        types = GoodsType.objects.all()
-
-        # 获取首页轮播商品信息
-        goods_banners = IndexGoodsBanner.objects.all().order_by('index')
-
-        # 获取首页促销活动信息
-        promotion_banners = IndexPromotionBanner.objects.all().order_by('index')
-
-        # 获取首页分类商品展示信息
-        for type1 in types: # GoodsType
-            # 获取type种类首页分类商品的图片展示信息
-            image_banners = IndexTypeGoodsBanner.objects.filter(type=type1, display_type=1).order_by('index')
-            # 获取type种类首页分类商品的文字展示信息
-            title_banners = IndexTypeGoodsBanner.objects.filter(type=type1, display_type=0).order_by('index')
-
-            # 动态给type增加属性，分别保存首页分类商品的图片展示信息和文字展示信息
-            type1.image_banners = image_banners
-            type1.title_banners = title_banners
-            
-
+        # 尝试从缓存中获取数据
+        context = cache.get('index_page_data')
+        if context is None:
+            print("——————————————————————————————测试专属——————————————————————————————————")
+            # 缓存中没有数据
+            # 获取商品的种类信息
+            types = GoodsType.objects.all()
+    
+            # 获取首页轮播商品信息
+            goods_banners = IndexGoodsBanner.objects.all().order_by('index')
+    
+            # 获取首页促销活动信息
+            promotion_banners = IndexPromotionBanner.objects.all().order_by('index')
+    
+            # 获取首页分类商品展示信息
+            for type1 in types: # GoodsType
+                # 获取type种类首页分类商品的图片展示信息
+                image_banners = IndexTypeGoodsBanner.objects.filter(type=type1, display_type=1).order_by('index')
+                # 获取type种类首页分类商品的文字展示信息
+                title_banners = IndexTypeGoodsBanner.objects.filter(type=type1, display_type=0).order_by('index')
+    
+                # 动态给type增加属性，分别保存首页分类商品的图片展示信息和文字展示信息
+                type1.image_banners = image_banners
+                type1.title_banners = title_banners
+    
+            context = {'types':types,
+                    'goods_banners':goods_banners,
+                    'promotion_banners':promotion_banners}
+                
+            # 设置缓存
+            cache.set('index_page_data', context, 3600) # key value timeout
 
         # 获取用户购物车中商品的数目
         user = request.user
@@ -43,11 +53,9 @@ class IndexView(View):
             cart_count = conn.hlen(cart_key)
 
         # 组织模板上下文
-        context = {'types':types,
-                   'goods_banners':goods_banners,
-                   'promotion_banners':promotion_banners,
-                   'cart_count':cart_count}
+        context.update(cart_count=cart_count)
 
+        # 使用模板
         return render(request, 'index.html', context)
 
 # /goods/商品id
